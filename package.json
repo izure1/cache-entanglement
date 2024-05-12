@@ -1,0 +1,40 @@
+{
+  "name": "cache-entanglement",
+  "version": "1.0.0",
+  "description": "Manage caches that are dependent on each other efficiently.",
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.mjs",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/index.cjs",
+      "import": "./dist/esm/index.mjs",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "test": "jest",
+    "build": "node build/index.mjs && tsc"
+  },
+  "keywords": [
+    "cache",
+    "entanglement",
+    "complex"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/izure1/cache-entanglement.git"
+  },
+  "author": "izure1 <admin@izure.org>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "esbuild": "^0.21.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.5"
+  }
+}
