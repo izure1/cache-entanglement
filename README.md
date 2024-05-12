@@ -18,8 +18,8 @@ const age = new CacheEntanglementSync((key, state, value: number) => {
 
 const user = new CacheEntanglementSync((key, { name, age }, nameValue: string, ageValue: number) => {
   return {
-    name: name.cache(key, nameValue),
-    age: age.cache(key, ageValue),
+    name: name.cache(key, nameValue).raw,
+    age: age.cache(key, ageValue).raw,
   }
 }, {
   name,
@@ -126,8 +126,8 @@ const article = new CacheEntanglementSync((key, {
   articleContent,
 }) => {
   return {
-    articleComments,
-    articleContent,
+    articleComments: articleComments.raw,
+    articleContent: articleContent.raw,
   }
 }, {
   articleComments,
@@ -149,7 +149,7 @@ function addComment(id: string, comment: string) {
     throw new Error(`article '${id}' is not existing.`)
   }
 
-  const comments = articleComments.get(id)
+  const comments = articleComments.get(id).clone('array-shallow-copy')
   comments.push(comment)
   articleComments.update(id, comments)
 }

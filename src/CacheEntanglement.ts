@@ -1,3 +1,5 @@
+import type { CacheData } from './CacheData'
+
 type Deferred<T> = T|Promise<T>
 
 export type CacheGetter<
@@ -17,7 +19,7 @@ export interface CacheValue<T> {
 }
 
 export type CacheState<T extends DependencyMap> = {
-  [K in keyof T]: T[K] extends CacheEntanglement<infer R, any> ? Awaited<ReturnType<R>> : never
+  [K in keyof T]: T[K] extends CacheEntanglement<infer R, any> ? CacheData<Awaited<ReturnType<R>>> : never
 }
 
 export abstract class CacheEntanglement<
@@ -26,7 +28,7 @@ export abstract class CacheEntanglement<
 > {
   protected readonly creation: G
   protected readonly dependencyMap: D
-  protected readonly cacheMap: CacheValue<Awaited<ReturnType<G>>> = {}
+  protected readonly cacheMap: CacheValue<CacheData<Awaited<ReturnType<G>>>> = {}
   protected readonly assignments: CacheEntanglement<any, any>[]
 
   constructor(creation: G, dependencyMap: D) {
@@ -42,7 +44,7 @@ export abstract class CacheEntanglement<
     }
   }
 
-  protected abstract resolve(key: string, ...parameter: CacheGetterParams<G>): Deferred<Awaited<ReturnType<G>>>
+  protected abstract resolve(key: string, ...parameter: CacheGetterParams<G>): Deferred<CacheData<Awaited<ReturnType<G>>>>
 
   /**
    * Checks if there is a cache value stored in the key within the instance.
@@ -56,7 +58,7 @@ export abstract class CacheEntanglement<
    * Returns the cache value stored in the key within the instance. If the cached value is not present, an error is thrown.
    * @param key The key to search.
    */
-  get(key: string): Awaited<ReturnType<G>> {
+  get(key: string): CacheData<Awaited<ReturnType<G>>> {
     if (!this.exists(key)) {
       throw new Error(`Cache value not found: ${key}`)
     }
@@ -78,7 +80,7 @@ export abstract class CacheEntanglement<
    * @param key The key value of the cache value. This value must be unique within the instance.
    * @param parameter The parameter of the cache creation function passed when creating the instance.
    */
-  abstract cache(key: string, ...parameter: CacheGetterParams<G>): Deferred<Awaited<ReturnType<G>>>
+  abstract cache(key: string, ...parameter: CacheGetterParams<G>): Deferred<CacheData<Awaited<ReturnType<G>>>>
 
   /**
    * Re-calls the creation function passed when creating the instance and stores the returned value in the cache again.
@@ -86,5 +88,5 @@ export abstract class CacheEntanglement<
    * @param key The key value of the cache value. This value must be unique within the instance.
    * @param parameter The parameter of the cache creation function passed when creating the instance.
    */
-  abstract update(key: string, ...parameter: CacheGetterParams<G>): Deferred<Awaited<ReturnType<G>>>
+  abstract update(key: string, ...parameter: CacheGetterParams<G>): Deferred<CacheData<Awaited<ReturnType<G>>>>
 }

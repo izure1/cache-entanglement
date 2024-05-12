@@ -17,8 +17,8 @@ describe('unit', () => {
     const user = new CacheEntanglementAsync(async (key, { nickname, index }) => {
       return {
         key,
-        nickname,
-        index,
+        nickname: nickname.raw,
+        index: index.raw,
       }
     }, {
       nickname,
@@ -39,7 +39,7 @@ describe('unit', () => {
     await nickname.cache(key)
     await index.cache(key, i)
 
-    expect(await user.cache(key)).toEqual({
+    expect((await user.cache(key)).raw).toEqual({
       key,
       nickname: 'user:izure',
       index: 0,
@@ -49,7 +49,7 @@ describe('unit', () => {
     await delay(100)
     await index.update(key, i)
 
-    expect(user.get(key)).toEqual({
+    expect(user.get(key).raw).toEqual({
       key,
       nickname: 'user:izure',
       index: 1,

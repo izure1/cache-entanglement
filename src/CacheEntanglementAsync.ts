@@ -5,12 +5,13 @@ import {
   CacheState,
   DependencyMap,
 } from './CacheEntanglement'
+import { CacheData } from './CacheData'
 
 export class CacheEntanglementAsync<
   G extends CacheGetter<CacheState<D>>,
   D extends DependencyMap
 > extends CacheEntanglement<G, D> {
-  protected async resolve(key: string, ...parameter: CacheGetterParams<G>): Promise<Awaited<ReturnType<G>>> {
+  protected async resolve(key: string, ...parameter: CacheGetterParams<G>): Promise<CacheData<Awaited<ReturnType<G>>>> {
     const resolved: CacheState<D> = {} as any
     for (const name in this.dependencyMap) {
       const dependency = this.dependencyMap[name] as unknown as CacheEntanglementAsync<any, any>
@@ -22,21 +23,21 @@ export class CacheEntanglementAsync<
         })
       }
       const dependencyValue = dependency.cacheMap[key]
-      resolved[name as keyof D] = dependencyValue
+      resolved[name as keyof D] = dependencyValue as any
     }
-    const value = await this.creation(key, resolved, ...parameter)
+    const value = new CacheData(await this.creation(key, resolved, ...parameter))
     this.cacheMap[key] = value
     return value
   }
 
-  async cache(key: string, ...parameter: CacheGetterParams<G>): Promise<Awaited<ReturnType<G>>> {
+  async cache(key: string, ...parameter: CacheGetterParams<G>): Promise<CacheData<Awaited<ReturnType<G>>>> {
     if (!Object.hasOwn(this.cacheMap, key)) {
       await this.resolve(key, ...parameter)
     }
     return this.cacheMap[key]
   }
 
-  async update(key: string, ...parameter: CacheGetterParams<G>): Promise<Awaited<ReturnType<G>>> {
+  async update(key: string, ...parameter: CacheGetterParams<G>): Promise<CacheData<Awaited<ReturnType<G>>>> {
     await this.resolve(key, ...parameter)
     for (const instance of this.assignments.values()) {
       await instance.update(key, this.creation)
