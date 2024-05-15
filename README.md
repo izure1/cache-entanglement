@@ -10,11 +10,11 @@ import { CacheEntanglementSync } from 'cache-entanglement'
 
 const name = new CacheEntanglementSync((key, state, value: string) => {
   return value
-}, {})
+})
 
 const age = new CacheEntanglementSync((key, state, value: number) => {
   return value
-}, {})
+})
 
 const user = new CacheEntanglementSync((key, { name, age }, nameValue: string, ageValue: number) => {
   return {
@@ -68,23 +68,62 @@ The **cache-entanglement** library is quite different from the usage of other ca
 
 I will explain some of the features of this library in detail.
 
-### Same cache key
+### Cache key naming convention
 
-Caches that are dependent on each other must have the same key. For example, let's say you have a **user** cache instance that caches user information, and this instance is dependent on a **name** cache instance that contains the user's name information. Here's what it looks like in code:
+If the cache is dependent on another cache, the naming convention of the key must be followed to ensure correct operation.
+The keys of caches that depend on other caches have the following naming convention:
+
+```bash
+"Key name of the dependent cache" / "My key name"
+```
+
+For example, let's say you have caches that contain **company** and **employee** information, respectively.
+**Employee** depends on the cache information of the **company** they belong to.
 
 ```typescript
-const name = new CacheEntanglementSync((key) => {
-  ...
-}, {})
+const company = new CacheEntanglementSync((key, state, companyName: string) => {
+  return companyName
+})
 
-const user = new CacheEntanglementSync((key, { name }) => {
+const employee = new CacheEntanglementSync((key, { company }, name: string) => {
   ...
+  const companyName = company.raw
+  return {
+    name,
+    companyName,
+  }
 }, {
-  name
+  company
 })
 ```
 
-In this case, if you want to cache the information of a user named **John**, both the **name** and **user** cache instances must use the same key. This allows the **user** instance, which depends on the **name** instance, to automatically update the same key value when the key value of the **name** instance is updated with a new value.
+If the **company** name is **github**, the employee's name should have the structure **github/your-name**. Here's an example:
+
+```typescript
+company.cache('github', 'Github')
+
+employee.cache('github/john', 'john')
+employee.cache('github/lee', 'lee')
+
+employee.get('github/lee') // { name: "lee", companyName: "Github" }
+```
+
+By creating it this way, when the github cache of the **company** instance is updated, all **employee** cache values that belong to **github/*** are updated.
+
+If there is another cache instance that depends on the **employee**, append **/** after it.
+
+```typescript
+const card = new CacheEntanglementSync((key, { employee }, tel: string) => {
+  return {
+    ...employee.clone(),
+    tel,
+  }
+}, {
+  employee
+})
+
+const johnCard = card.cache('github/john/card', 'xxx-xxxx-xxxx')
+```
 
 ### Cache creation function
 
@@ -152,6 +191,26 @@ function addComment(id: string, comment: string) {
   const comments = articleComments.get(id).clone('array-shallow-copy')
   comments.push(comment)
   articleComments.update(id, comments)
+}
+```
+
+## With TypeScript
+
+```typescript
+import { CacheEntanglementSync } from 'cache-entanglement'
+
+class MyClass {
+  private readonly _myCache: ReturnType<MyClass['_createMyCache']>
+
+  constructor() {
+    this._myCache = this._createMyCache()
+  }
+
+  private _createMyCache() {
+    return new CacheEntanglementSync((key, state) => {
+      ...
+    })
+  }
 }
 ```
 

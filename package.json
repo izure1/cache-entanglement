@@ -1,6 +1,6 @@
 {
   "name": "cache-entanglement",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Manage caches that are dependent on each other efficiently.",
   "main": "dist/cjs/index.cjs",
   "module": "dist/esm/index.mjs",

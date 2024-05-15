@@ -1,25 +1,18 @@
 import type { CacheData } from './CacheData'
 
 type Deferred<T> = T|Promise<T>
+type ValueRecord<T> = { [key: string]: T }
 
-export type CacheGetter<
-  R extends CacheValue<any>
-> = (key: string, state: R, ...initialParameter: any) => any
+export type CacheGetter<R extends ValueRecord<any>> = (key: string, state: R, ...initialParameter: any) => any
 
 export type CacheGetterParams<
   C extends CacheGetter<any>
 > = C extends (key: string, state: any, ...parameter: infer P) => any ? P : never
 
-export interface DependencyMap {
-  [key: string]: CacheEntanglement<CacheGetter<any>, DependencyMap>
-}
+export type DependencyMap = ValueRecord<CacheEntanglement<CacheGetter<any>, DependencyMap>>
 
-export interface CacheValue<T> {
-  [key: string]: T
-}
-
-export type CacheState<T extends DependencyMap> = {
-  [K in keyof T]: T[K] extends CacheEntanglement<infer R, any> ? CacheData<Awaited<ReturnType<R>>> : never
+export type CacheState<T extends (DependencyMap|ValueRecord<any>)> = {
+  [K in keyof T]: T[K] extends CacheEntanglement<infer R, any> ? CacheData<Awaited<ReturnType<R>>> : CacheData<T[K]>
 }
 
 export abstract class CacheEntanglement<
@@ -28,23 +21,37 @@ export abstract class CacheEntanglement<
 > {
   protected readonly creation: G
   protected readonly dependencyMap: D
-  protected readonly cacheMap: CacheValue<CacheData<Awaited<ReturnType<G>>>> = {}
+  protected readonly cacheMap: ValueRecord<CacheData<Awaited<ReturnType<G>>>> = {}
   protected readonly assignments: CacheEntanglement<any, any>[]
+  protected readonly parameterMap: ValueRecord<CacheGetterParams<G>>
 
-  constructor(creation: G, dependencyMap: D) {
+  constructor(
+    creation: G,
+    dependencyMap?: D
+  ) {
     this.creation = creation
-    this.dependencyMap = dependencyMap
     this.assignments = []
+    this.dependencyMap = (dependencyMap ?? {}) as D
+    this.parameterMap = {} as unknown as ValueRecord<CacheGetterParams<G>>
 
-    for (const name in dependencyMap) {
-      const dependency = dependencyMap[name]
+    for (const name in this.dependencyMap) {
+      const dependency = this.dependencyMap[name]
       if (!dependency.assignments.includes(this)) {
         dependency.assignments.push(this)
       }
     }
   }
 
-  protected abstract resolve(key: string, ...parameter: CacheGetterParams<G>): Deferred<CacheData<Awaited<ReturnType<G>>>>
+  protected abstract resolve(
+    key: string,
+    ...parameter: CacheGetterParams<G>
+  ): Deferred<CacheData<Awaited<ReturnType<G>>>>
+
+  protected dependencyKey(key: string): string {
+    const tokens = key.split('/')
+    tokens.pop()
+    return tokens.join('/')
+  }
 
   /**
    * Checks if there is a cache value stored in the key within the instance.

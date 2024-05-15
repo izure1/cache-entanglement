@@ -1,4 +1,7 @@
-import { CacheEntanglementAsync } from '..'
+import {
+  CacheEntanglementAsync,
+  CacheEntanglementSync
+} from '..'
 
 function delay(duration: number) {
   return new Promise((resolve) => {
@@ -70,5 +73,107 @@ describe('unit', () => {
     expect(index.exists('test')).toBeTruthy()
     index.delete('test')
     expect(index.exists('test')).toBeFalsy()
+  })
+
+  test('1:n update', async () => {
+    const header = new CacheEntanglementAsync(async (key, state, value: string) => {
+      return value
+    })
+    const body = new CacheEntanglementAsync(async (key, { header }, content: string) => {
+      return {
+        header: header.raw,
+        content
+      }
+    }, {
+      header
+    })
+
+    const prefix = 'user:john'
+    await header.cache(`${prefix}`, 'john header')
+    await body.cache(`${prefix}/1`, 'john content 1')
+    await body.cache(`${prefix}/2`, 'john content 2')
+
+    expect(body.get(`${prefix}/1`).raw).toEqual({
+      header: 'john header',
+      content: 'john content 1'
+    })
+    expect(body.get(`${prefix}/2`).raw).toEqual({
+      header: 'john header',
+      content: 'john content 2'
+    })
+
+    await header.update(`${prefix}`, 'lee header')
+    expect(body.get(`${prefix}/1`).raw).toEqual({
+      header: 'lee header',
+      content: 'john content 1'
+    })
+    
+    await body.update(`${prefix}/2`, 'john content 3')
+    expect(body.get(`${prefix}/2`).raw).toEqual({
+      header: 'lee header',
+      content: 'john content 3'
+    })
+    
+    await header.update(`${prefix}`, 'lee header 2')
+    expect(body.get(`${prefix}/2`).raw).toEqual({
+      header: 'lee header 2',
+      content: 'john content 3'
+    })
+  })
+
+  test('deep', () => {
+    interface Employee {
+      name: string
+      companyName: string
+    }
+
+    const company = new CacheEntanglementSync((key, state, companyName: string) => {
+      return companyName
+    })
+    
+    const employee = new CacheEntanglementSync((key, { company }, name: string) => {
+      const companyName = company.raw
+      return {
+        name,
+        companyName,
+      }
+    }, {
+      company
+    })
+
+    const card = new CacheEntanglementSync((key, { employee }, tel: string) => {
+      return {
+        ...employee.clone(),
+        tel,
+      }
+    }, {
+      employee
+    })
+
+    company.cache('github', 'Github')
+
+    employee.cache('github/john', 'john')
+    employee.cache('github/lee', 'lee')
+
+    expect(employee.get('github/lee').raw).toEqual({
+      name: 'lee',
+      companyName: 'Github'
+    })
+    
+    card.cache('github/john/card', 'xxx-xxxx-xxxx')
+
+    expect(card.get('github/john/card').raw).toEqual({
+      tel: 'xxx-xxxx-xxxx',
+      name: 'john',
+      companyName: 'Github'
+    })
+
+    company.update('github', 'Github.com')
+
+    expect(card.get('github/john/card').raw).toEqual({
+      tel: 'xxx-xxxx-xxxx',
+      name: 'john',
+      companyName: 'Github.com'
+    })
   })
 })
