@@ -1,19 +1,31 @@
 import {
+  BeforeUpdateHookAsync,
   CacheEntanglement,
   CacheGetter,
   CacheGetterParams,
-  CacheState,
+  DependencyCacheData,
   DependencyMap,
 } from './CacheEntanglement'
 import { CacheData } from './CacheData'
 
 export class CacheEntanglementAsync<
-  G extends CacheGetter<CacheState<D>>,
+  G extends CacheGetter<DependencyCacheData<D>>,
   D extends DependencyMap
 > extends CacheEntanglement<G, D> {
+  declare protected readonly beforeUpdateHook: BeforeUpdateHookAsync<G, D>
+
+  constructor(
+    creation: G,
+    dependencyMap?: D,
+    beforeUpdateHook?: BeforeUpdateHookAsync<G, D>
+  ) {
+    super(creation, dependencyMap, beforeUpdateHook)
+  }
+
   protected async resolve(key: string, ...parameter: CacheGetterParams<G>): Promise<CacheData<Awaited<ReturnType<G>>>> {
-    const resolved: CacheState<D> = {} as any
+    const resolved: DependencyCacheData<D> = {} as any
     const dependencyKey = this.dependencyKey(key)
+    await this.beforeUpdateHook(key, dependencyKey, ...parameter)
     for (const name in this.dependencyMap) {
       const dependency = this.dependencyMap[name] as unknown as CacheEntanglementAsync<any, any>
       if (

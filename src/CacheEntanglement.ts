@@ -3,23 +3,39 @@ import type { CacheData } from './CacheData'
 type Deferred<T> = T|Promise<T>
 type ValueRecord<T> = { [key: string]: T }
 
-export type CacheGetter<R extends ValueRecord<any>> = (key: string, state: R, ...initialParameter: any) => any
+export type CacheGetter<R extends ValueRecord<any>> = (key: string, cache: R, ...initialParameter: any) => any
 
 export type CacheGetterParams<
   C extends CacheGetter<any>
-> = C extends (key: string, state: any, ...parameter: infer P) => any ? P : never
+> = C extends (key: string, cache: any, ...parameter: infer P) => any ? P : never
 
 export type DependencyMap = ValueRecord<CacheEntanglement<CacheGetter<any>, DependencyMap>>
 
-export type CacheState<T extends (DependencyMap|ValueRecord<any>)> = {
+export type DependencyCacheData<T extends (DependencyMap|ValueRecord<any>)> = {
   [K in keyof T]: T[K] extends CacheEntanglement<infer R, any> ? CacheData<Awaited<ReturnType<R>>> : CacheData<T[K]>
 }
 
+export type BeforeUpdateHookSync<
+  G extends CacheGetter<DependencyCacheData<D>>,
+  D extends DependencyMap
+> = (key: string, dependencyKey: string, ...initialParameter: CacheGetterParams<G>) => void
+
+export type BeforeUpdateHookAsync<
+  G extends CacheGetter<DependencyCacheData<D>>,
+  D extends DependencyMap
+> = (key: string, dependencyKey: string, ...initialParameter: CacheGetterParams<G>) => Promise<void>
+
+export type BeforeUpdateHook<
+  G extends CacheGetter<DependencyCacheData<D>>,
+  D extends DependencyMap
+> = BeforeUpdateHookSync<G, D>|BeforeUpdateHookAsync<G, D>
+
 export abstract class CacheEntanglement<
-  G extends CacheGetter<CacheState<D>>,
+  G extends CacheGetter<DependencyCacheData<D>>,
   D extends DependencyMap
 > {
   protected readonly creation: G
+  protected readonly beforeUpdateHook: BeforeUpdateHook<G, D>
   protected readonly dependencyMap: D
   protected readonly cacheMap: ValueRecord<CacheData<Awaited<ReturnType<G>>>> = {}
   protected readonly assignments: CacheEntanglement<any, any>[]
@@ -27,12 +43,14 @@ export abstract class CacheEntanglement<
 
   constructor(
     creation: G,
-    dependencyMap?: D
+    dependencyMap?: D,
+    beforeUpdateHook?: BeforeUpdateHook<G, D>
   ) {
     this.creation = creation
     this.assignments = []
     this.dependencyMap = (dependencyMap ?? {}) as D
     this.parameterMap = {} as unknown as ValueRecord<CacheGetterParams<G>>
+    this.beforeUpdateHook = (beforeUpdateHook ?? (() => {})) as BeforeUpdateHook<G, D>
 
     for (const name in this.dependencyMap) {
       const dependency = this.dependencyMap[name]

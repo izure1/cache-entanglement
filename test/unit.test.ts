@@ -176,4 +176,33 @@ describe('unit', () => {
       companyName: 'Github.com'
     })
   })
+
+  test('before update', () => {
+    const header = new CacheEntanglementSync((key, state, value: string) => {
+      return value
+    })
+
+    const body = new CacheEntanglementSync((key, { header }, headerContent: string, bodyContent: string) => {
+      return {
+        header: header.raw,
+        content: bodyContent
+      }
+    }, {
+      header
+    }, (key, dependencyKey, headerContent) => {
+      header.cache(dependencyKey, headerContent)
+    })
+
+    body.cache('content/1', 'article header', 'article content')
+    expect(body.get('content/1').raw).toEqual({
+      header: 'article header',
+      content: 'article content'
+    })
+
+    body.update('content/1', 'article header after', 'article content after')
+    expect(body.get('content/1').raw).toEqual({
+      header: 'article header',
+      content: 'article content after'
+    })
+  })
 })
