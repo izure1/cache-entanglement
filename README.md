@@ -16,15 +16,25 @@ const age = new CacheEntanglementSync((key, state, value: number) => {
   return value
 })
 
-const user = new CacheEntanglementSync((key, { name, age }, nameValue: string, ageValue: number) => {
+const user = new CacheEntanglementSync((key, state) => {
+  const { name, age } = state
   return {
-    name: name.cache(key, nameValue).raw,
-    age: age.cache(key, ageValue).raw,
+    name: name.raw,
+    age: age.raw,
   }
 }, {
   name,
   age,
 })
+
+name.cache('john', 'John')
+age.cache('john', 20)
+user.cache('john/user')
+
+
+user.get('john/user').raw // { name: "John", age: 20 }
+age.update('john', 21)
+user.get('john/user').raw // { name: "John", age: 21 }
 ```
 
 ## Why do you use **cache-entanglement**?
@@ -71,11 +81,6 @@ I will explain some of the features of this library in detail.
 ### Cache key naming convention
 
 If the cache is dependent on another cache, the naming convention of the key must be followed to ensure correct operation.
-The keys of caches that depend on other caches have the following naming convention:
-
-```bash
-"Key name of the dependent cache" / "My key name"
-```
 
 For example, let's say you have caches that contain **company** and **employee** information, respectively.
 **Employee** depends on the cache information of the **company** they belong to.
