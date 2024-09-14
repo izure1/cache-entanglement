@@ -113,6 +113,10 @@ employee.cache('github/lee', 'lee')
 employee.get('github/lee') // { name: "lee", companyName: "Github" }
 ```
 
+#### Why name it like this?
+
+This is the process of letting the library know that the **github/lee** cache from the **employee** variable depends on the **github** cache from the **company** variable.
+
 By creating it this way, when the github cache of the **company** instance is updated, all **employee** cache values that belong to **github/*** are updated.
 
 If there is another cache instance that depends on the **employee**, append **/** after it.
@@ -198,6 +202,62 @@ function addComment(id: string, comment: string) {
   articleComments.update(id, comments)
 }
 ```
+
+## Using beforeUpdateHook
+
+This can be used in the constructor function, and it is called when the cache is created or updated. For example, when the following code is executed, the console output will appear in the following order.
+
+```typescript
+const myCache = new CacheEntanglementSync((key, state, myArg) => {
+  console.log('created!')
+}, {}, (key, dependencyKey, myArg) => {
+  console.log('key', key)
+  console.log('dependency key', dependencyKey)
+  console.log('my argument', myArg)
+})
+
+myCache.cache('my/test', 123)
+```
+
+```bash
+log: "key" "my/test"
+log: "dependency key" "my"
+log: "my argument" 123
+log: "created!"
+```
+
+Such update hooks can be used to "safely assign" dependent caches in a bottom-up reverse order. See the following example.
+
+```typescript
+const name = new CacheEntanglementSync((key, state, name: string) => {
+  return name
+})
+
+const age = new CacheEntanglementSync((key, state, age: number) => {
+  return age
+})
+
+const user = new CacheEntanglementSync((key, state, _name: string, _age: number) => {
+  const name = state.name.clone()
+  const age = state.age.clone()
+  return {
+    name,
+    age,
+  }
+}, {
+  name,
+  age,
+}, (key, dependencyKey, _name, _age) => {
+  name.cache(key, _name)
+  age.cache(key, _age)
+})
+
+user.cache('john', 'john', 20)
+```
+
+This example demonstrates how to create the **user** cache without first generating the dependent caches, **name** and **age**. The **beforeUpdateHook** function attempts to create the dependent caches first, and if they already exist, they won't be created again.
+
+Note: Do not use the cache's **update** method inside the **beforeUpdateHook** function, as it may cause recursion and break your application.
 
 ## With TypeScript
 
