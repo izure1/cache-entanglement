@@ -4,7 +4,7 @@ type CacheDataCloneStrategy = 'array-shallow-copy'|'object-shallow-copy'|'deep-c
 type CacheDataCopy<T> = (raw: T) => T
 
 export class CacheData<T> {
-  protected static readonly StructuredClone = globalThis.structuredClone ?? ungapStructuredClone
+  protected static readonly StructuredClone = globalThis.structuredClone.bind(globalThis) ?? ungapStructuredClone.bind(globalThis)
   
   private readonly _value: T
   
