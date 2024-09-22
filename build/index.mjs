@@ -10,6 +10,7 @@ const common = {
 
 esbuild.build({
   ...common,
+  platform: 'browser',
   format: 'esm',
   outdir: 'dist/esm',
   outExtension: {
@@ -19,6 +20,7 @@ esbuild.build({
 
 esbuild.build({
   ...common,
+  platform: 'node',
   format: 'cjs',
   outdir: 'dist/cjs',
   outExtension: {
