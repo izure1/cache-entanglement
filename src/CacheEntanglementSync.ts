@@ -29,8 +29,8 @@ export class CacheEntanglementSync<
     for (const name in this.dependencyMap) {
       const dependency = this.dependencyMap[name] as unknown as CacheEntanglementSync<any, any>
       if (
-        !Object.hasOwn(dependency.cacheMap, key) &&
-        !Object.hasOwn(dependency.cacheMap, dependencyKey)
+        !dependency.cacheMap.has(key) &&
+        !dependency.cacheMap.has(dependencyKey)
       ) {
         throw new Error(`The key '${key}' or '${dependencyKey}' has not been assigned yet in dependency '${name}'.`, {
           cause: {
@@ -38,27 +38,27 @@ export class CacheEntanglementSync<
           }
         })
       }
-      const dependencyValue = dependency.cacheMap[key] ?? dependency.cacheMap[dependencyKey]
+      const dependencyValue = dependency.cacheMap.get(key) ?? dependency.cacheMap.get(dependencyKey)
       resolved[name as keyof D] = dependencyValue as any
     }
     this.parameterMap[key] = parameter
     const value = new CacheData(this.creation(key, resolved, ...parameter))
-    this.cacheMap[key] = value
+    this.cacheMap.set(key, value)
     return value
   }
 
   cache(key: string, ...parameter: CacheGetterParams<G>): CacheData<Awaited<ReturnType<G>>> {
-    if (!Object.hasOwn(this.cacheMap, key)) {
+    if (!this.cacheMap.has(key)) {
       this.resolve(key, ...parameter)
     }
-    return this.cacheMap[key]
+    return this.cacheMap.get(key)!
   }
 
   update(key: string, ...parameter: CacheGetterParams<G>): CacheData<Awaited<ReturnType<G>>> {
     this.resolve(key, ...parameter)
     for (const t of this.assignments) {
       const instance = t as CacheEntanglementSync<any, any>
-      for (const cacheKey in instance.cacheMap) {
+      for (const cacheKey of instance.cacheMap.keys()) {
         if (
           cacheKey === key ||
           cacheKey.startsWith(`${key}/`)
@@ -67,6 +67,6 @@ export class CacheEntanglementSync<
         }
       }
     }
-    return this.cacheMap[key]
+    return this.cacheMap.get(key)!
   }
 }

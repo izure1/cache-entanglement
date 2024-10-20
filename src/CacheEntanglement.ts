@@ -1,4 +1,5 @@
 import type { CacheData } from './CacheData'
+import { InvertedWeakMap } from './utils/InvertWeakMap'
 
 type Deferred<T> = T|Promise<T>
 type ValueRecord<T> = { [key: string]: T }
@@ -37,7 +38,7 @@ export abstract class CacheEntanglement<
   protected readonly creation: G
   protected readonly beforeUpdateHook: BeforeUpdateHook<G, D>
   protected readonly dependencyMap: D
-  protected readonly cacheMap: ValueRecord<CacheData<Awaited<ReturnType<G>>>> = {}
+  protected readonly cacheMap: InvertedWeakMap<string, CacheData<Awaited<ReturnType<G>>>>
   protected readonly assignments: CacheEntanglement<any, any>[]
   protected readonly parameterMap: ValueRecord<CacheGetterParams<G>>
 
@@ -48,6 +49,7 @@ export abstract class CacheEntanglement<
   ) {
     this.creation = creation
     this.assignments = []
+    this.cacheMap = new InvertedWeakMap()
     this.dependencyMap = (dependencyMap ?? {}) as D
     this.parameterMap = {} as unknown as ValueRecord<CacheGetterParams<G>>
     this.beforeUpdateHook = (beforeUpdateHook ?? (() => {})) as BeforeUpdateHook<G, D>
@@ -76,7 +78,7 @@ export abstract class CacheEntanglement<
    * @param key The key to search.
    */
   exists(key: string): boolean {
-    return Object.hasOwn(this.cacheMap, key)
+    return this.cacheMap.has(key)
   }
 
   /**
@@ -84,10 +86,10 @@ export abstract class CacheEntanglement<
    * @param key The key to search.
    */
   get(key: string): CacheData<Awaited<ReturnType<G>>> {
-    if (!this.exists(key)) {
+    if (!this.cacheMap.has(key)) {
       throw new Error(`Cache value not found: ${key}`)
     }
-    return this.cacheMap[key]
+    return this.cacheMap.get(key)!
   }
 
   /**
@@ -95,7 +97,7 @@ export abstract class CacheEntanglement<
    * @param key The key to delete.
    */
   delete(key: string): void {
-    delete this.cacheMap[key]
+    this.cacheMap.delete(key)
   }
 
   /**
