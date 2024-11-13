@@ -1,12 +1,8 @@
-import ungapStructuredClone from '@ungap/structured-clone'
-
 type CacheDataCloneStrategy = 'array-shallow-copy'|'object-shallow-copy'|'deep-copy'
 type CacheDataCopy<T> = (raw: T) => T
 
 export class CacheData<T> {
-  protected static readonly StructuredClone: typeof globalThis.structuredClone|typeof ungapStructuredClone = globalThis.structuredClone ?
-    globalThis.structuredClone.bind(globalThis) : 
-    ungapStructuredClone.bind(globalThis)
+  protected static readonly StructuredClone: typeof globalThis.structuredClone = globalThis.structuredClone.bind(globalThis)
   
   private readonly _value: T
   
