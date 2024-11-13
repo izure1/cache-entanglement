@@ -1,3 +1,5 @@
+name: JSR publish
+
 on:
   release:
     types: [created]
