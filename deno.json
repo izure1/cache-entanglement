@@ -1,0 +1,24 @@
+{
+  "name": "@izure/cache-entanglement",
+  "version": "0.0.1",
+  "description": "Manage caches that are dependent on each other efficiently.",
+  "author": "izure1 <admin@izure.org>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/izure1/cache-entanglement.git"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "imports": {
+    "@ungap/structured-clone": "npm:@ungap/structured-clone@^1.2.0"
+  },
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "src/**/*.ts"
+    ]
+  }
+}
