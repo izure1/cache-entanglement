@@ -1,5 +1,5 @@
 import type { CacheData } from './CacheData'
-import { InvertedWeakMap } from './utils/InvertWeakMap'
+import { InvertedWeakMap } from './utils/InvertedWeakMap'
 
 type Deferred<T> = T|Promise<T>
 type ValueRecord<T> = { [key: string]: T }
