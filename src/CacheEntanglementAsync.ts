@@ -9,9 +9,9 @@ import {
 import { CacheData } from './CacheData'
 
 export class CacheEntanglementAsync<
-  G extends CacheGetter<DependencyCacheData<D>>,
-  D extends DependencyMap
-> extends CacheEntanglement<G, D> {
+  D extends DependencyMap,
+  G extends CacheGetter<DependencyCacheData<D>>
+> extends CacheEntanglement<D, G> {
   declare protected readonly beforeUpdateHook: BeforeUpdateHookAsync<G, D>
 
   constructor(

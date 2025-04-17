@@ -10,10 +10,10 @@ export type CacheGetterParams<
   C extends CacheGetter<any>
 > = C extends (key: string, cache: any, ...parameter: infer P) => any ? P : never
 
-export type DependencyMap = ValueRecord<CacheEntanglement<CacheGetter<any>, DependencyMap>>
+export type DependencyMap = ValueRecord<CacheEntanglement<DependencyMap, CacheGetter<any>>>
 
 export type DependencyCacheData<T extends (DependencyMap|ValueRecord<any>)> = {
-  [K in keyof T]: T[K] extends CacheEntanglement<infer R, any> ? CacheData<Awaited<ReturnType<R>>> : CacheData<T[K]>
+  [K in keyof T]: T[K] extends CacheEntanglement<any, infer R> ? CacheData<Awaited<ReturnType<R>>> : CacheData<T[K]>
 }
 
 export type BeforeUpdateHookSync<
@@ -32,8 +32,8 @@ export type BeforeUpdateHook<
 > = BeforeUpdateHookSync<G, D>|BeforeUpdateHookAsync<G, D>
 
 export abstract class CacheEntanglement<
-  G extends CacheGetter<DependencyCacheData<D>>,
-  D extends DependencyMap
+  D extends DependencyMap,
+  G extends CacheGetter<DependencyCacheData<D>>
 > {
   protected readonly creation: G
   protected readonly beforeUpdateHook: BeforeUpdateHook<G, D>

@@ -203,6 +203,12 @@ function addComment(id: string, comment: string) {
 }
 ```
 
+### Cache Lifetime
+
+Caches are stored in the computer's memory. They persist until they are explicitly removed using the `instance.clear()` or `instance.delete(key)` methods, or until they are garbage collected by the JavaScript engine once they are no longer referenced. Therefore, you generally don't need to worry about memory leaks.
+
+Even if a cache entry is removed (either manually or through garbage collection), it will be automatically regenerated the next time `instance.cache(key, ...params)` is called for that specific key. This ensures that accessing the cache via the `.cache()` method is effectively "null safe", as it will always return a valid cache entry (either existing or newly created).
+
 ## Using beforeUpdateHook
 
 This can be used in the constructor function, and it is called when the cache is created or updated. For example, when the following code is executed, the console output will appear in the following order.
