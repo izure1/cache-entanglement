@@ -74,6 +74,22 @@ export abstract class CacheEntanglement<
   }
 
   /**
+   * Returns all keys stored in the instance.
+   */
+  keys(): IterableIterator<string> {
+    return this.cacheMap.keys()
+  }
+
+  /**
+   * Deletes all cache values stored in the instance.
+   */
+  clear(): void {
+    for (const key of this.keys()) {
+      this.delete(key)
+    }
+  }
+
+  /**
    * Checks if there is a cache value stored in the key within the instance.
    * @param key The key to search.
    */
