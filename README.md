@@ -203,11 +203,61 @@ function addComment(id: string, comment: string) {
 }
 ```
 
-### Cache Lifetime
+### Cache Lifespan
 
 Caches are stored in the computer's memory. They persist until they are explicitly removed using the `instance.clear()` or `instance.delete(key)` methods, or until they are garbage collected by the JavaScript engine once they are no longer referenced. Therefore, you generally don't need to worry about memory leaks.
 
 Even if a cache entry is removed (either manually or through garbage collection), it will be automatically regenerated the next time `instance.cache(key, ...params)` is called for that specific key. This ensures that accessing the cache via the `.cache()` method is effectively "null safe", as it will always return a valid cache entry (either existing or newly created).
+
+#### About lifespan option
+
+You can set the cache lifespan using the `lifespan` option in the constructor. The lifespan can be specified in milliseconds (e.g., `1000 * 60 * 5`) or as a duration string (e.g., `'5m'`, `'1s'`).
+
+The `lifespan` option provides a guarantee that a cache entry will **not** be eligible for garbage collection for the specified duration, calculated from its last access via `cache`. This means the library actively protects the cache entry from being removed by the JavaScript engine's garbage collector during this period.
+
+It's important to understand that when this guaranteed lifespan expires, the cache entry is **not** automatically deleted by the library. Instead, it simply means the library no longer actively prevents it from being garbage collected. The actual removal then depends on the JavaScript environment's garbage collection cycles and memory pressure. Consequently, a cache entry might persist in memory for longer than its specified lifespan if it's still referenced or if the garbage collector doesn't reclaim it immediately.
+
+If a cache entry's lifespan has passed and it has been garbage collected, the next time `instance.cache(key, ...params)` is called for that key, the cache creation function will be invoked again to regenerate the entry.
+
+Here's how you can use it:
+
+```typescript
+const myCache = new CacheEntanglementSync((key, state, value: string) => {
+  return value
+}, {}, {
+  lifespan: 1000 * 60 * 5 // or '5m'
+})
+
+myCache.cache('my-key', 'my-value')
+
+// For the next 5 minutes, 'my-key' is guaranteed not to be garbage collected.
+// After 5 minutes, it becomes eligible for garbage collection if not otherwise referenced,
+// but its actual removal time depends on the GC.
+```
+
+The following example illustrates the behavior when a cache entry is accessed after its guaranteed lifespan might have allowed it to be garbage collected:
+
+```typescript
+const myCache = new CacheEntanglementSync((key, state, value: string) => {
+  console.log('creating cache for', key)
+  return value
+}, {}, {
+  lifespan: 1000 // or '1s'
+})
+
+myCache.cache('my-key', 'my-value') // logs "creating cache for my-key"
+
+setTimeout(() => {
+  myCache.cache('my-key') // Access within 1s: Cache is still protected, no re-creation log.
+}, 500)
+
+setTimeout(() => {
+  // Access after 1.5s: The 1-second guaranteed lifespan has passed.
+  // The cache entry for 'my-key' might have been garbage collected.
+  // If so, cache() will trigger re-creation.
+  myCache.cache('my-key') // Assuming re-creation: logs "creating cache for my-key" again
+}, 1500)
+```
 
 ## Using beforeUpdateHook
 
@@ -216,10 +266,15 @@ This can be used in the constructor function, and it is called when the cache is
 ```typescript
 const myCache = new CacheEntanglementSync((key, state, myArg) => {
   console.log('created!')
-}, {}, (key, dependencyKey, myArg) => {
-  console.log('key', key)
-  console.log('dependency key', dependencyKey)
-  console.log('my argument', myArg)
+}, {
+  // ...Your cache dependencies
+}, {
+  // Use beforeUpdateHook option
+  beforeUpdateHook: (key, dependencyKey, myArg) => {
+    console.log('key', key)
+    console.log('dependency key', dependencyKey)
+    console.log('my argument', myArg)
+  }
 })
 
 myCache.cache('my/test', 123)
@@ -253,9 +308,11 @@ const user = new CacheEntanglementSync((key, state, _name: string, _age: number)
 }, {
   name,
   age,
-}, (key, dependencyKey, _name, _age) => {
-  name.cache(key, _name)
-  age.cache(key, _age)
+}, {
+  beforeUpdateHook: (key, dependencyKey, _name, _age) => {
+    name.cache(key, _name)
+    age.cache(key, _age)
+  }
 })
 
 user.cache('john', 'john', 20)

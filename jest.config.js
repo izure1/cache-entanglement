@@ -2,4 +2,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  moduleNameMapper: {
+    '^cache-entanglement$': ['<rootDir>/src/index.ts'],
+  }
 };

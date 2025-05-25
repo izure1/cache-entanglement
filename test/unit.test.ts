@@ -1,7 +1,7 @@
 import {
   CacheEntanglementAsync,
   CacheEntanglementSync
-} from '..'
+} from 'cache-entanglement'
 
 function delay(duration: number) {
   return new Promise((resolve) => {
@@ -189,8 +189,10 @@ describe('unit', () => {
       }
     }, {
       header
-    }, (key, dependencyKey, headerContent) => {
-      header.cache(dependencyKey, headerContent)
+    }, {
+      beforeUpdateHook: (key, dependencyKey, headerContent) => {
+        header.cache(dependencyKey, headerContent)
+      }
     })
 
     body.cache('content/1', 'article header', 'article content')

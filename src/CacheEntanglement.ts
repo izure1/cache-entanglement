@@ -1,3 +1,4 @@
+import ms, { type StringValue } from 'ms'
 import type { CacheData } from './CacheData'
 import { InvertedWeakMap } from './utils/InvertedWeakMap'
 
@@ -17,26 +18,51 @@ export type DependencyCacheData<T extends (DependencyMap|ValueRecord<any>)> = {
 }
 
 export type BeforeUpdateHookSync<
-  G extends CacheGetter<DependencyCacheData<D>>,
-  D extends DependencyMap
+  D extends DependencyMap,
+  G extends CacheGetter<DependencyCacheData<D>>
 > = (key: string, dependencyKey: string, ...initialParameter: CacheGetterParams<G>) => void
 
 export type BeforeUpdateHookAsync<
-  G extends CacheGetter<DependencyCacheData<D>>,
-  D extends DependencyMap
+  D extends DependencyMap,
+  G extends CacheGetter<DependencyCacheData<D>>
 > = (key: string, dependencyKey: string, ...initialParameter: CacheGetterParams<G>) => Promise<void>
 
 export type BeforeUpdateHook<
-  G extends CacheGetter<DependencyCacheData<D>>,
-  D extends DependencyMap
-> = BeforeUpdateHookSync<G, D>|BeforeUpdateHookAsync<G, D>
+  D extends DependencyMap,
+  G extends CacheGetter<DependencyCacheData<D>>
+> = BeforeUpdateHookSync<D, G>|BeforeUpdateHookAsync<D, G>
+
+export interface CacheEntanglementConstructorOption<
+  D extends DependencyMap,
+  G extends CacheGetter<DependencyCacheData<D>>
+> {
+  /**
+   * A hook that is called before the cache value is updated.
+   * This hook is called before the creation function is called.
+   * You can use this hook to update the dependency cache values before the creation function is called.
+   * @param key The key of the cache value to be updated.
+   * @param dependencyKey The key of the dependency cache value to be updated.
+   * @param initialParameter The parameter of the cache creation function passed when creating the instance.
+   */
+  beforeUpdateHook?: BeforeUpdateHook<D, G>
+  /**
+   * The lifespan of the cache value.
+   * The cache guarantees a lifespan of at least this time and is not collected by garbage collection. It may live longer depending on the environment.
+   * If the value is a number, it is treated as milliseconds.
+   * If the value is a string, it is parsed by the `ms` library.
+   * If the value is `0`, the cache value will not expire.
+   * The default value is `0`.
+   */
+  lifespan?: StringValue|number
+}
 
 export abstract class CacheEntanglement<
   D extends DependencyMap,
   G extends CacheGetter<DependencyCacheData<D>>
 > {
   protected readonly creation: G
-  protected readonly beforeUpdateHook: BeforeUpdateHook<G, D>
+  protected readonly beforeUpdateHook: BeforeUpdateHook<D, G>
+  protected readonly lifespan: number
   protected readonly dependencyMap: D
   protected readonly cacheMap: InvertedWeakMap<string, CacheData<Awaited<ReturnType<G>>>>
   protected readonly assignments: CacheEntanglement<any, any>[]
@@ -45,14 +71,20 @@ export abstract class CacheEntanglement<
   constructor(
     creation: G,
     dependencyMap?: D,
-    beforeUpdateHook?: BeforeUpdateHook<G, D>
+    option?: CacheEntanglementConstructorOption<D, G>
   ) {
+    option = option ?? {}
+    const {
+      beforeUpdateHook,
+      lifespan,
+    } = option
+    this.beforeUpdateHook = (beforeUpdateHook ?? (() => {})) as BeforeUpdateHook<D, G>
+    this.lifespan = this._normalizeMs(lifespan ?? 0)
     this.creation = creation
     this.assignments = []
-    this.cacheMap = new InvertedWeakMap()
+    this.cacheMap = new InvertedWeakMap({ lifespan: this.lifespan })
     this.dependencyMap = (dependencyMap ?? {}) as D
     this.parameterMap = {} as unknown as ValueRecord<CacheGetterParams<G>>
-    this.beforeUpdateHook = (beforeUpdateHook ?? (() => {})) as BeforeUpdateHook<G, D>
 
     for (const name in this.dependencyMap) {
       const dependency = this.dependencyMap[name]
@@ -60,6 +92,13 @@ export abstract class CacheEntanglement<
         dependency.assignments.push(this)
       }
     }
+  }
+
+  private _normalizeMs(time: StringValue|number): number {
+    if (typeof time === 'string') {
+      return ms(time)
+    }
+    return time
   }
 
   protected abstract resolve(

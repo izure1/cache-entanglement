@@ -1,6 +1,7 @@
 import {
   BeforeUpdateHookAsync,
   CacheEntanglement,
+  CacheEntanglementConstructorOption,
   CacheGetter,
   CacheGetterParams,
   DependencyCacheData,
@@ -12,14 +13,14 @@ export class CacheEntanglementAsync<
   D extends DependencyMap,
   G extends CacheGetter<DependencyCacheData<D>>
 > extends CacheEntanglement<D, G> {
-  declare protected readonly beforeUpdateHook: BeforeUpdateHookAsync<G, D>
+  declare protected readonly beforeUpdateHook: BeforeUpdateHookAsync<D, G>
 
   constructor(
     creation: G,
     dependencyMap?: D,
-    beforeUpdateHook?: BeforeUpdateHookAsync<G, D>
+    option?: CacheEntanglementConstructorOption<D, G>
   ) {
-    super(creation, dependencyMap, beforeUpdateHook)
+    super(creation, dependencyMap, option)
   }
 
   protected async resolve(key: string, ...parameter: CacheGetterParams<G>): Promise<CacheData<Awaited<ReturnType<G>>>> {
