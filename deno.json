@@ -1,6 +1,6 @@
 {
   "name": "@izure/cache-entanglement",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Manage caches that are dependent on each other efficiently.",
   "author": "izure1 <admin@izure.org>",
   "license": "MIT",
