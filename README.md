@@ -23,8 +23,10 @@ const user = new CacheEntanglementSync((key, state) => {
     age: age.raw,
   }
 }, {
-  name,
-  age,
+  dependencies: {
+    name,
+    age,
+  }
 })
 
 name.cache('john', 'John')
@@ -98,7 +100,9 @@ const employee = new CacheEntanglementSync((key, { company }, name: string) => {
     companyName,
   }
 }, {
-  company
+  dependencies: {
+    company
+  }
 })
 ```
 
@@ -128,7 +132,9 @@ const card = new CacheEntanglementSync((key, { employee }, tel: string) => {
     tel,
   }
 }, {
-  employee
+  dependencies: {
+    employee
+  }
 })
 
 const johnCard = card.cache('github/john/card', 'xxx-xxxx-xxxx')
@@ -143,7 +149,7 @@ class FileManager {
   constructor() {
     this.content = new CacheEntanglementAsync(async (key, state, path: string) => {
       return await fs.readFile(path)
-    }, {})
+    })
   }
 
   async getContent(path: string): Promise<string> {
@@ -178,8 +184,10 @@ const article = new CacheEntanglementSync((key, {
     articleContent: articleContent.raw,
   }
 }, {
-  articleComments,
-  articleContent,
+  dependencies: {
+    articleComments,
+    articleContent,
+  }
 })
 
 function postArticle(content: string) {
@@ -224,7 +232,7 @@ Here's how you can use it:
 ```typescript
 const myCache = new CacheEntanglementSync((key, state, value: string) => {
   return value
-}, {}, {
+}, {
   lifespan: 1000 * 60 * 5 // or '5m'
 })
 
@@ -241,7 +249,7 @@ The following example illustrates the behavior when a cache entry is accessed af
 const myCache = new CacheEntanglementSync((key, state, value: string) => {
   console.log('creating cache for', key)
   return value
-}, {}, {
+}, {
   lifespan: 1000 // or '1s'
 })
 
@@ -266,8 +274,6 @@ This can be used in the constructor function, and it is called when the cache is
 ```typescript
 const myCache = new CacheEntanglementSync((key, state, myArg) => {
   console.log('created!')
-}, {
-  // ...Your cache dependencies
 }, {
   // Use beforeUpdateHook option
   beforeUpdateHook: (key, dependencyKey, myArg) => {
@@ -306,13 +312,14 @@ const user = new CacheEntanglementSync((key, state, _name: string, _age: number)
     age,
   }
 }, {
-  name,
-  age,
-}, {
+  dependencies: {
+    name,
+    age,
+  },
   beforeUpdateHook: (key, dependencyKey, _name, _age) => {
     name.cache(key, _name)
     age.cache(key, _age)
-  }
+  },
 })
 
 user.cache('john', 'john', 20)

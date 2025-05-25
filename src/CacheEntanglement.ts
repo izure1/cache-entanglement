@@ -1,4 +1,5 @@
-import ms, { type StringValue } from 'ms'
+import ms from 'ms'
+import type { StringValue } from './types/index'
 import type { CacheData } from './CacheData'
 import { InvertedWeakMap } from './utils/InvertedWeakMap'
 
@@ -37,6 +38,12 @@ export interface CacheEntanglementConstructorOption<
   G extends CacheGetter<DependencyCacheData<D>>
 > {
   /**
+   * The dependencies of the cache value.
+   * The key of the object is the name of the dependency, and the value is the CacheEntanglement instance.
+   * The dependency cache value is passed to the creation function as the second parameter.
+   */
+  dependencies?: D
+  /**
    * A hook that is called before the cache value is updated.
    * This hook is called before the creation function is called.
    * You can use this hook to update the dependency cache values before the creation function is called.
@@ -63,31 +70,31 @@ export abstract class CacheEntanglement<
   protected readonly creation: G
   protected readonly beforeUpdateHook: BeforeUpdateHook<D, G>
   protected readonly lifespan: number
-  protected readonly dependencyMap: D
-  protected readonly cacheMap: InvertedWeakMap<string, CacheData<Awaited<ReturnType<G>>>>
+  protected readonly dependencies: D
+  protected readonly caches: InvertedWeakMap<string, CacheData<Awaited<ReturnType<G>>>>
   protected readonly assignments: CacheEntanglement<any, any>[]
-  protected readonly parameterMap: ValueRecord<CacheGetterParams<G>>
+  protected readonly parameters: ValueRecord<CacheGetterParams<G>>
 
   constructor(
     creation: G,
-    dependencyMap?: D,
     option?: CacheEntanglementConstructorOption<D, G>
   ) {
     option = option ?? {}
     const {
-      beforeUpdateHook,
+      dependencies,
       lifespan,
+      beforeUpdateHook,
     } = option
+    this.creation = creation
     this.beforeUpdateHook = (beforeUpdateHook ?? (() => {})) as BeforeUpdateHook<D, G>
     this.lifespan = this._normalizeMs(lifespan ?? 0)
-    this.creation = creation
     this.assignments = []
-    this.cacheMap = new InvertedWeakMap({ lifespan: this.lifespan })
-    this.dependencyMap = (dependencyMap ?? {}) as D
-    this.parameterMap = {} as unknown as ValueRecord<CacheGetterParams<G>>
+    this.caches = new InvertedWeakMap({ lifespan: this.lifespan })
+    this.dependencies = (dependencies ?? {}) as D
+    this.parameters = {} as unknown as ValueRecord<CacheGetterParams<G>>
 
-    for (const name in this.dependencyMap) {
-      const dependency = this.dependencyMap[name]
+    for (const name in this.dependencies) {
+      const dependency = this.dependencies[name]
       if (!dependency.assignments.includes(this)) {
         dependency.assignments.push(this)
       }
@@ -116,7 +123,7 @@ export abstract class CacheEntanglement<
    * Returns all keys stored in the instance.
    */
   keys(): IterableIterator<string> {
-    return this.cacheMap.keys()
+    return this.caches.keys()
   }
 
   /**
@@ -133,7 +140,7 @@ export abstract class CacheEntanglement<
    * @param key The key to search.
    */
   exists(key: string): boolean {
-    return this.cacheMap.has(key)
+    return this.caches.has(key)
   }
 
   /**
@@ -141,10 +148,10 @@ export abstract class CacheEntanglement<
    * @param key The key to search.
    */
   get(key: string): CacheData<Awaited<ReturnType<G>>> {
-    if (!this.cacheMap.has(key)) {
+    if (!this.caches.has(key)) {
       throw new Error(`Cache value not found: ${key}`)
     }
-    return this.cacheMap.get(key)!
+    return this.caches.get(key)!
   }
 
   /**
@@ -152,7 +159,7 @@ export abstract class CacheEntanglement<
    * @param key The key to delete.
    */
   delete(key: string): void {
-    this.cacheMap.delete(key)
+    this.caches.delete(key)
   }
 
   /**

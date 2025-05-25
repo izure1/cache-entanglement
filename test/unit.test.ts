@@ -24,8 +24,10 @@ describe('unit', () => {
         index: index.raw,
       }
     }, {
-      nickname,
-      index,
+      dependencies: {
+        nickname,
+        index,
+      }
     })
     return {
       nickname,
@@ -85,7 +87,9 @@ describe('unit', () => {
         content
       }
     }, {
-      header
+      dependencies: {
+        header
+      }
     })
 
     const prefix = 'user:john'
@@ -138,7 +142,9 @@ describe('unit', () => {
         companyName,
       }
     }, {
-      company
+      dependencies: {
+        company
+      }
     })
 
     const card = new CacheEntanglementSync((key, { employee }, tel: string) => {
@@ -147,7 +153,9 @@ describe('unit', () => {
         tel,
       }
     }, {
-      employee
+      dependencies: {
+        employee
+      }
     })
 
     company.cache('github', 'Github')
@@ -188,11 +196,12 @@ describe('unit', () => {
         content: bodyContent
       }
     }, {
-      header
-    }, {
+      dependencies: {
+        header
+      },
       beforeUpdateHook: (key, dependencyKey, headerContent) => {
         header.cache(dependencyKey, headerContent)
-      }
+      },
     })
 
     body.cache('content/1', 'article header', 'article content')
