@@ -13,10 +13,14 @@ describe('unit', () => {
   const init = () => {
     const nickname = new CacheEntanglementAsync(async (key) => {
       return `user:${key}`
-    }, {})
+    }, {
+      lifespan: '1m'
+    })
     const index = new CacheEntanglementAsync(async (key, {}, i: number) => {
       return i
-    }, {})
+    }, {
+      lifespan: '1m'
+    })
     const user = new CacheEntanglementAsync(async (key, { nickname, index }) => {
       return {
         key,
@@ -24,20 +28,27 @@ describe('unit', () => {
         index: index.raw,
       }
     }, {
+      lifespan: '1m',
       dependencies: {
         nickname,
         index,
-      }
+      },
     })
+    const clear = () => {
+      nickname.clear()
+      index.clear()
+      user.clear()
+    }
     return {
       nickname,
       index,
       user,
+      clear
     }
   }
 
   test('total', async () => {
-    const { nickname, index, user } = init()
+    const { nickname, index, user, clear } = init()
     const key = 'izure'
     let i = 0
 
@@ -59,27 +70,33 @@ describe('unit', () => {
       nickname: 'user:izure',
       index: 1,
     })
+
+    clear()
   })
 
   test('exists', async () => {
-    const { index } = init()
+    const { index, clear } = init()
     expect(index.exists('test')).toBeFalsy()
     await index.cache('test', 1)
     expect(index.exists('test')).toBeTruthy()
+    clear()
   })
 
   test('delete', async () => {
-    const { index } = init()
+    const { index, clear } = init()
     expect(index.exists('test')).toBeFalsy()
     await index.cache('test', 1)
     expect(index.exists('test')).toBeTruthy()
     index.delete('test')
     expect(index.exists('test')).toBeFalsy()
+    clear()
   })
 
   test('1:n update', async () => {
     const header = new CacheEntanglementAsync(async (key, state, value: string) => {
       return value
+    }, {
+      lifespan: '1m'
     })
     const body = new CacheEntanglementAsync(async (key, { header }, content: string) => {
       return {
@@ -87,9 +104,10 @@ describe('unit', () => {
         content
       }
     }, {
+      lifespan: '1m',
       dependencies: {
         header
-      }
+      },
     })
 
     const prefix = 'user:john'
@@ -123,6 +141,9 @@ describe('unit', () => {
       header: 'lee header 2',
       content: 'john content 3'
     })
+
+    header.clear()
+    body.clear()
   })
 
   test('deep', () => {
@@ -133,6 +154,8 @@ describe('unit', () => {
 
     const company = new CacheEntanglementSync((key, state, companyName: string) => {
       return companyName
+    }, {
+      lifespan: '1m'
     })
     
     const employee = new CacheEntanglementSync((key, { company }, name: string) => {
@@ -142,9 +165,10 @@ describe('unit', () => {
         companyName,
       }
     }, {
+      lifespan: '1m',
       dependencies: {
         company
-      }
+      },
     })
 
     const card = new CacheEntanglementSync((key, { employee }, tel: string) => {
@@ -153,9 +177,10 @@ describe('unit', () => {
         tel,
       }
     }, {
+      lifespan: '1m',
       dependencies: {
         employee
-      }
+      },
     })
 
     company.cache('github', 'Github')
@@ -183,11 +208,17 @@ describe('unit', () => {
       name: 'john',
       companyName: 'Github.com'
     })
+
+    company.clear()
+    employee.clear()
+    card.clear()
   })
 
   test('before update', () => {
     const header = new CacheEntanglementSync((key, state, value: string) => {
       return value
+    }, {
+      lifespan: '1m'
     })
 
     const body = new CacheEntanglementSync((key, { header }, headerContent: string, bodyContent: string) => {
@@ -196,6 +227,7 @@ describe('unit', () => {
         content: bodyContent
       }
     }, {
+      lifespan: '1m',
       dependencies: {
         header
       },
@@ -215,5 +247,8 @@ describe('unit', () => {
       header: 'article header',
       content: 'article content after'
     })
+
+    header.clear()
+    body.clear()
   })
 })
