@@ -18,7 +18,7 @@ export class InvertedWeakMap<K extends string|number|symbol, V extends WeakKey> 
     this._keepAlive = new Map()
     this._timeouts = new Map()
     this._registry = new FinalizationRegistry((key) => {
-      this._removeExpire(key)
+      this._stopExpire(key, true)
       this._map.delete(key)
     })
   }
@@ -36,7 +36,8 @@ export class InvertedWeakMap<K extends string|number|symbol, V extends WeakKey> 
         this._registry.unregister(raw)
       }
     }
-    this._removeExpire(key)
+    this._stopExpire(key, true)
+    this._keepAlive.delete(key)
     return this._map.delete(key)
   }
 
@@ -52,26 +53,40 @@ export class InvertedWeakMap<K extends string|number|symbol, V extends WeakKey> 
     this._map.set(key, new WeakRef(value))
     this._registry.register(value, key)
     if (this._lifespan > 0) {
-      this._setExpire(key, value)
+      this._stopExpire(key, true)
+      this._startExpire(key, value)
     }
     return this
   }
 
-  private _setExpire(key: K, value: V): void {
-    this._removeExpire(key)
+  extendExpire(key: K): void {
+    if (!(this._lifespan > 0)) {
+      return
+    }
+    if (!this._keepAlive.has(key)) {
+      return
+    }
+    this._stopExpire(key, false)
+    this._startExpire(key, this._keepAlive.get(key)!)
+  }
+
+  private _startExpire(key: K, value: V): void {
     this._keepAlive.set(key, value)
     this._timeouts.set(key, setTimeout(() => {
       this._keepAlive.delete(key)
     }, this._lifespan))
   }
 
-  private _removeExpire(key: K): void {
-    if (this._timeouts.has(key)) {
-      const timeout = this._timeouts.get(key)!
-      this._timeouts.delete(key)
-      clearTimeout(timeout)
+  private _stopExpire(key: K, removeKeepAlive: boolean): void {
+    if (!this._timeouts.has(key)) {
+      return
     }
-    this._keepAlive.delete(key)
+    const timeout = this._timeouts.get(key)!
+    this._timeouts.delete(key)
+    clearTimeout(timeout)
+    if (removeKeepAlive) {
+      this._keepAlive.delete(key)
+    }
   }
 
   get size(): number {

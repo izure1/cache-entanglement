@@ -51,6 +51,9 @@ export class CacheEntanglementAsync<
     if (!this.caches.has(key)) {
       await this.resolve(key, ...parameter)
     }
+    else {
+      this.caches.extendExpire(key)
+    }
     return this.caches.get(key)!
   }
 

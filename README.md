@@ -223,9 +223,9 @@ You can set the cache lifespan using the `lifespan` option in the constructor. T
 
 The `lifespan` option provides a guarantee that a cache entry will **not** be eligible for garbage collection for the specified duration, calculated from its last access via `cache`. This means the library actively protects the cache entry from being removed by the JavaScript engine's garbage collector during this period.
 
-It's important to understand that when this guaranteed lifespan expires, the cache entry is **not** automatically deleted by the library. Instead, it simply means the library no longer actively prevents it from being garbage collected. The actual removal then depends on the JavaScript environment's garbage collection cycles and memory pressure. Consequently, a cache entry might persist in memory for longer than its specified lifespan if it's still referenced or if the garbage collector doesn't reclaim it immediately.
+Furthermore, if you call `cache()` or `update()` on an existing cache entry, its lifespan is reset and extended from that point of interaction. When the guaranteed lifespan expires, the cache entry is **not** automatically deleted by the library. Instead, it simply means the library no longer actively prevents it from being garbage collected. The actual removal then depends on the JavaScript environment's garbage collection cycles and memory pressure. Consequently, a cache entry might persist in memory for longer than its specified lifespan if it's still referenced or if the garbage collector doesn't reclaim it immediately.
 
-If a cache entry's lifespan has passed and it has been garbage collected, the next time `instance.cache(key, ...params)` is called for that key, the cache creation function will be invoked again to regenerate the entry.
+If a cache entry's lifespan has passed and it has been garbage collected (or if it was never created), the next time `instance.cache(key, ...params)` is called for that key, the cache creation function will be invoked to (re)generate the entry.
 
 Here's how you can use it:
 

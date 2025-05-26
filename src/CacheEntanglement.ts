@@ -53,12 +53,13 @@ export interface CacheEntanglementConstructorOption<
    */
   beforeUpdateHook?: BeforeUpdateHook<D, G>
   /**
-   * The lifespan of the cache value.
-   * The cache guarantees a lifespan of at least this time and is not collected by garbage collection. It may live longer depending on the environment.
-   * If the value is a number, it is treated as milliseconds.
-   * If the value is a string, it is parsed by the `ms` library.
-   * If the value is `0`, the cache value will not expire.
-   * The default value is `0`.
+   * Lifespan of a cache entry, in milliseconds (number) or a string (e.g., '5m', parsed by `ms`).
+   *
+   * - Positive value: Guarantees the entry is not GC'd for this duration.
+   *   The lifespan is reset and calculated from the last `cache()` or `update()` call on the entry.
+   * - `0` (default) or negative: Timed lifespan protection is disabled.
+   *   Entries are held by `WeakRef`s and subject to standard JavaScript GC,
+   *   with no minimum lifetime enforced by the library.
    */
   lifespan?: StringValue|number
 }

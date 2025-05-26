@@ -51,6 +51,9 @@ export class CacheEntanglementSync<
     if (!this.caches.has(key)) {
       this.resolve(key, ...parameter)
     }
+    else {
+      this.caches.extendExpire(key)
+    }
     return this.caches.get(key)!
   }
 
