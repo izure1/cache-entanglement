@@ -1,3 +1,3 @@
 export { CacheEntanglementSync } from './CacheEntanglementSync'
 export { CacheEntanglementAsync } from './CacheEntanglementAsync'
-export { StringValue } from 'ms'
+export { StringValue } from './types/index'
