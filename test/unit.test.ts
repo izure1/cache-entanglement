@@ -83,12 +83,13 @@ describe('unit', () => {
   })
 
   test('delete', async () => {
-    const { index, clear } = init()
+    const { index, user, clear } = init()
     expect(index.exists('test')).toBeFalsy()
     await index.cache('test', 1)
     expect(index.exists('test')).toBeTruthy()
     index.delete('test')
     expect(index.exists('test')).toBeFalsy()
+    expect(user.exists('test')).toBeFalsy()
     clear()
   })
 

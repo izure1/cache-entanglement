@@ -23,13 +23,16 @@ export class CacheData<T> {
    * The method returns a copied value of the cached data.
    * You can pass a function as a parameter to copy the value. This parameter function should return the copied value.
    * 
-   * If no parameter is passed, it defaults to using Javascript's or \@ungap/structured-clone's `structuredClone` function to copy the value.
+   * If no parameter is passed, it defaults to using `structuredClone` function to copy the value.
    * If you prefer shallow copying instead of deep copying,
    * you can use the default options `array-shallow-copy`, `object-shallow-copy` and `deep-copy`,
    * which are replaced with functions to shallow copy arrays and objects, respectively. This is a syntactic sugar.
    * @param strategy The function that returns the copied value.
-   * If you want to perform a shallow copy, simply pass the strings `array-shallow-copy` or `object-shallow-copy` for easy use.
-   * The default is `structuredClone`.
+   * If you want to perform a shallow copy, simply pass the strings `array-shallow-copy` or `object-shallow-copy` for easy use.  
+   * The `array-shallow-copy` strategy performs a shallow copy of an array.  
+   * The `object-shallow-copy` strategy performs a shallow copy of an object.  
+   * The `deep-copy` strategy performs a deep copy of the value using `structuredClone`.  
+   * The default is `deep-copy`.
    */
   clone(strategy: CacheDataCloneStrategy|CacheDataCopy<T> = 'deep-copy'): T {
     if (strategy && typeof strategy !== 'string') {

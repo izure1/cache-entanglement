@@ -26,13 +26,14 @@ export class CacheEntanglementSync<
     const resolved: DependencyCacheData<D> = {} as any
     const dependencyKey = this.dependencyKey(key)
     this.beforeUpdateHook(key, dependencyKey, ...parameter)
-    for (const name in this.dependencies) {
+    for (let i = 0, len = this.dependencyKeys.length; i < len; i++) {
+      const name = this.dependencyKeys[i]
       const dependency = this.dependencies[name] as unknown as CacheEntanglementSync<any, any>
       if (
         !dependency.caches.has(key) &&
         !dependency.caches.has(dependencyKey)
       ) {
-        throw new Error(`The key '${key}' or '${dependencyKey}' has not been assigned yet in dependency '${name}'.`, {
+        throw new Error(`The key '${key}' or '${dependencyKey}' has not been assigned yet in dependency '${name.toString()}'.`, {
           cause: {
             from: this
           }
@@ -59,7 +60,8 @@ export class CacheEntanglementSync<
 
   update(key: string, ...parameter: CacheGetterParams<G>): CacheData<Awaited<ReturnType<G>>> {
     this.resolve(key, ...parameter)
-    for (const t of this.assignments) {
+    for (let i = 0, len = this.assignments.length; i < len; i++) {
+      const t = this.assignments[i]
       const instance = t as CacheEntanglementSync<any, any>
       for (const cacheKey of instance.caches.keys()) {
         if (
@@ -71,5 +73,21 @@ export class CacheEntanglementSync<
       }
     }
     return this.caches.get(key)!
+  }
+
+  delete(key: string): void {
+    this.caches.delete(key)
+    for (let i = 0, len = this.assignments.length; i < len; i++) {
+      const t = this.assignments[i]
+      const instance = t as CacheEntanglementSync<any, any>
+      for (const cacheKey of instance.caches.keys()) {
+        if (
+          cacheKey === key ||
+          cacheKey.startsWith(`${key}/`)
+        ) {
+          instance.delete(cacheKey)
+        }
+      }
+    }
   }
 }
