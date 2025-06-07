@@ -26,8 +26,8 @@ export class CacheEntanglementAsync<
     const resolved: DependencyCacheData<D> = {} as any
     const dependencyKey = this.dependencyKey(key)
     await this.beforeUpdateHook(key, dependencyKey, ...parameter)
-    for (let i = 0, len = this.dependencyKeys.length; i < len; i++) {
-      const name = this.dependencyKeys[i]
+    for (let i = 0, len = this.dependencyProperties.length; i < len; i++) {
+      const name = this.dependencyProperties[i]
       const dependency = this.dependencies[name] as unknown as CacheEntanglementAsync<any, any>
       if (
         !dependency.caches.has(key) &&
@@ -50,7 +50,7 @@ export class CacheEntanglementAsync<
 
   async cache(key: string, ...parameter: CacheGetterParams<G>): Promise<CacheData<Awaited<ReturnType<G>>>> {
     if (!this.caches.has(key)) {
-      await this.resolve(key, ...parameter)
+      await this.update(key, ...parameter)
     }
     else {
       this.caches.extendExpire(key)

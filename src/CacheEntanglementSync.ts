@@ -26,8 +26,8 @@ export class CacheEntanglementSync<
     const resolved: DependencyCacheData<D> = {} as any
     const dependencyKey = this.dependencyKey(key)
     this.beforeUpdateHook(key, dependencyKey, ...parameter)
-    for (let i = 0, len = this.dependencyKeys.length; i < len; i++) {
-      const name = this.dependencyKeys[i]
+    for (let i = 0, len = this.dependencyProperties.length; i < len; i++) {
+      const name = this.dependencyProperties[i]
       const dependency = this.dependencies[name] as unknown as CacheEntanglementSync<any, any>
       if (
         !dependency.caches.has(key) &&
@@ -50,7 +50,7 @@ export class CacheEntanglementSync<
 
   cache(key: string, ...parameter: CacheGetterParams<G>): CacheData<Awaited<ReturnType<G>>> {
     if (!this.caches.has(key)) {
-      this.resolve(key, ...parameter)
+      this.update(key, ...parameter)
     }
     else {
       this.caches.extendExpire(key)

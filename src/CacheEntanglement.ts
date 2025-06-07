@@ -75,7 +75,7 @@ export abstract class CacheEntanglement<
   protected readonly caches: InvertedWeakMap<string, CacheData<Awaited<ReturnType<G>>>>
   protected readonly assignments: CacheEntanglement<any, any>[]
   protected readonly parameters: ValueRecord<CacheGetterParams<G>>
-  protected readonly dependencyKeys: (keyof D)[]
+  protected readonly dependencyProperties: (keyof D)[]
 
   constructor(
     creation: G,
@@ -93,7 +93,7 @@ export abstract class CacheEntanglement<
     this.assignments = []
     this.caches = new InvertedWeakMap({ lifespan: this.lifespan })
     this.dependencies = (dependencies ?? {}) as D
-    this.dependencyKeys = Object.keys(this.dependencies) as (keyof D)[]
+    this.dependencyProperties = Object.keys(this.dependencies) as (keyof D)[]
     this.parameters = {} as unknown as ValueRecord<CacheGetterParams<G>>
 
     for (const name in this.dependencies) {
