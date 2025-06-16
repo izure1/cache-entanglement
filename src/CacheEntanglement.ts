@@ -73,9 +73,10 @@ export abstract class CacheEntanglement<
   protected readonly lifespan: number
   protected readonly dependencies: D
   protected readonly caches: InvertedWeakMap<string, CacheData<Awaited<ReturnType<G>>>>
+  protected readonly parameters: Map<string, CacheGetterParams<G>>
   protected readonly assignments: CacheEntanglement<any, any>[]
-  protected readonly parameters: ValueRecord<CacheGetterParams<G>>
   protected readonly dependencyProperties: (keyof D)[]
+  protected readonly updateRequirements: Set<string>
 
   constructor(
     creation: G,
@@ -92,9 +93,10 @@ export abstract class CacheEntanglement<
     this.lifespan = this._normalizeMs(lifespan ?? 0)
     this.assignments = []
     this.caches = new InvertedWeakMap({ lifespan: this.lifespan })
+    this.parameters = new Map()
     this.dependencies = (dependencies ?? {}) as D
     this.dependencyProperties = Object.keys(this.dependencies) as (keyof D)[]
-    this.parameters = {} as unknown as ValueRecord<CacheGetterParams<G>>
+    this.updateRequirements = new Set()
 
     for (const name in this.dependencies) {
       const dependency = this.dependencies[name]
@@ -110,23 +112,43 @@ export abstract class CacheEntanglement<
     }
     return time
   }
+  
+  protected abstract recache(key: string): Deferred<CacheData<Awaited<ReturnType<G>>>|undefined>
 
   protected abstract resolve(
     key: string,
     ...parameter: CacheGetterParams<G>
   ): Deferred<CacheData<Awaited<ReturnType<G>>>>
 
+  protected bubbleUpdateSignal(key: string): void {
+    this.updateRequirements.add(key)
+    for (let i = 0, len = this.assignments.length; i < len; i++) {
+      const t = this.assignments[i]
+      const instance = t as CacheEntanglement<any, any>
+      for (const cacheKey of instance.caches.keys()) {
+        if (
+          cacheKey === key ||
+          cacheKey.startsWith(`${key}/`)
+        ) {
+          instance.bubbleUpdateSignal(cacheKey)
+        }
+      }
+    }
+  }
+
   protected dependencyKey(key: string): string {
-    const tokens = key.split('/')
-    tokens.pop()
-    return tokens.join('/')
+    const i = key.lastIndexOf('/')
+    if (i === -1) {
+      return key
+    }
+    return key.substring(0, i)
   }
 
   /**
    * Returns all keys stored in the instance.
    */
   keys(): IterableIterator<string> {
-    return this.caches.keys()
+    return this.parameters.keys()
   }
 
   /**
@@ -143,25 +165,45 @@ export abstract class CacheEntanglement<
    * @param key The key to search.
    */
   exists(key: string): boolean {
-    return this.caches.has(key)
+    return this.parameters.has(key)
   }
 
   /**
-   * Returns the cache value stored in the key within the instance. If the cached value is not present, an error is thrown.
+   * Checks if there is a cache value stored in the key within the instance.
+   * This method is an alias for `exists`.
    * @param key The key to search.
    */
-  get(key: string): CacheData<Awaited<ReturnType<G>>> {
-    if (!this.caches.has(key)) {
-      throw new Error(`Cache value not found: ${key}`)
-    }
-    return this.caches.get(key)!
+  has(key: string): boolean {
+    return this.exists(key)
   }
 
   /**
    * Deletes the cache value stored in the key within the instance.
    * @param key The key to delete.
    */
-  abstract delete(key: string): Deferred<void>
+  delete(key: string): void {
+    this.caches.delete(key)
+    this.parameters.delete(key)
+    this.updateRequirements.delete(key)
+    for (let i = 0, len = this.assignments.length; i < len; i++) {
+      const t = this.assignments[i]
+      const instance = t as CacheEntanglement<any, any>
+      for (const cacheKey of instance.keys()) {
+        if (
+          cacheKey === key ||
+          cacheKey.startsWith(`${key}/`)
+        ) {
+          instance.delete(cacheKey)
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns the cache value stored in the key within the instance. If the cached value is not present, an error is thrown.
+   * @param key The key to search.
+   */
+  abstract get(key: string): Deferred<CacheData<Awaited<ReturnType<G>>>>
 
   /**
    * Returns the cache value of the key assigned to the instance.

@@ -65,7 +65,7 @@ describe('unit', () => {
     await delay(100)
     await index.update(key, i)
 
-    expect(user.get(key).raw).toEqual({
+    expect((await user.get(key)).raw).toEqual({
       key,
       nickname: 'user:izure',
       index: 1,
@@ -116,29 +116,29 @@ describe('unit', () => {
     await body.cache(`${prefix}/1`, 'john content 1')
     await body.cache(`${prefix}/2`, 'john content 2')
 
-    expect(body.get(`${prefix}/1`).raw).toEqual({
+    expect((await body.get(`${prefix}/1`)).raw).toEqual({
       header: 'john header',
       content: 'john content 1'
     })
-    expect(body.get(`${prefix}/2`).raw).toEqual({
+    expect((await body.get(`${prefix}/2`)).raw).toEqual({
       header: 'john header',
       content: 'john content 2'
     })
 
     await header.update(`${prefix}`, 'lee header')
-    expect(body.get(`${prefix}/1`).raw).toEqual({
+    expect((await body.get(`${prefix}/1`)).raw).toEqual({
       header: 'lee header',
       content: 'john content 1'
     })
     
     await body.update(`${prefix}/2`, 'john content 3')
-    expect(body.get(`${prefix}/2`).raw).toEqual({
+    expect((await body.get(`${prefix}/2`)).raw).toEqual({
       header: 'lee header',
       content: 'john content 3'
     })
     
     await header.update(`${prefix}`, 'lee header 2')
-    expect(body.get(`${prefix}/2`).raw).toEqual({
+    expect((await body.get(`${prefix}/2`)).raw).toEqual({
       header: 'lee header 2',
       content: 'john content 3'
     })
@@ -243,7 +243,7 @@ describe('unit', () => {
       content: 'article content'
     })
 
-    body.update('content/1', 'article header after', 'article content after')
+    body.update('content/1', 'it must be not updated', 'article content after')
     expect(body.get('content/1').raw).toEqual({
       header: 'article header',
       content: 'article content after'
