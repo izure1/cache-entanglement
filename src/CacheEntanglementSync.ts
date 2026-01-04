@@ -22,7 +22,7 @@ export class CacheEntanglementSync<
     super(creation, option)
   }
 
-  protected recache(key: string): CacheData<Awaited<ReturnType<G>>>|undefined {
+  protected recache(key: string): CacheData<Awaited<ReturnType<G>>> | undefined {
     if (!this.parameters.has(key)) {
       return
     }
@@ -69,9 +69,6 @@ export class CacheEntanglementSync<
   cache(key: string, ...parameter: CacheGetterParams<G>): CacheData<Awaited<ReturnType<G>>> {
     if (!this.caches.has(key) || this.updateRequirements.has(key)) {
       this.resolve(key, ...parameter)
-    }
-    else {
-      this.caches.extendExpire(key)
     }
     return this.caches.get(key)!
   }

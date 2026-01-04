@@ -22,7 +22,7 @@ export class CacheEntanglementAsync<
     super(creation, option)
   }
 
-  protected async recache(key: string): Promise<CacheData<Awaited<ReturnType<G>>>|undefined> {
+  protected async recache(key: string): Promise<CacheData<Awaited<ReturnType<G>>> | undefined> {
     if (!this.parameters.has(key)) {
       return
     }
@@ -69,9 +69,6 @@ export class CacheEntanglementAsync<
   async cache(key: string, ...parameter: CacheGetterParams<G>): Promise<CacheData<Awaited<ReturnType<G>>>> {
     if (!this.caches.has(key) || this.updateRequirements.has(key)) {
       await this.update(key, ...parameter)
-    }
-    else {
-      this.caches.extendExpire(key)
     }
     return this.caches.get(key)!
   }

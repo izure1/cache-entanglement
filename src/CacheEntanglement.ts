@@ -1,9 +1,7 @@
-import ms from 'ms'
-import type { StringValue } from './types/index'
 import type { CacheData } from './CacheData'
-import { InvertedWeakMap } from './utils/InvertedWeakMap'
+import { LRUMap } from './utils/LRUMap'
 
-type Deferred<T> = T|Promise<T>
+type Deferred<T> = T | Promise<T>
 type ValueRecord<T> = { [key: string]: T }
 
 export type CacheGetter<R extends ValueRecord<any>> = (key: string, cache: R, ...initialParameter: any) => any
@@ -14,7 +12,7 @@ export type CacheGetterParams<
 
 export type DependencyMap = ValueRecord<CacheEntanglement<DependencyMap, CacheGetter<any>>>
 
-export type DependencyCacheData<T extends (DependencyMap|ValueRecord<any>)> = {
+export type DependencyCacheData<T extends (DependencyMap | ValueRecord<any>)> = {
   [K in keyof T]: T[K] extends CacheEntanglement<any, infer R> ? CacheData<Awaited<ReturnType<R>>> : CacheData<T[K]>
 }
 
@@ -31,7 +29,7 @@ export type BeforeUpdateHookAsync<
 export type BeforeUpdateHook<
   D extends DependencyMap,
   G extends CacheGetter<DependencyCacheData<D>>
-> = BeforeUpdateHookSync<D, G>|BeforeUpdateHookAsync<D, G>
+> = BeforeUpdateHookSync<D, G> | BeforeUpdateHookAsync<D, G>
 
 export interface CacheEntanglementConstructorOption<
   D extends DependencyMap,
@@ -53,15 +51,10 @@ export interface CacheEntanglementConstructorOption<
    */
   beforeUpdateHook?: BeforeUpdateHook<D, G>
   /**
-   * Lifespan of a cache entry, in milliseconds (number) or a string (e.g., '5m', parsed by `ms`).
-   *
-   * - Positive value: Guarantees the entry is not GC'd for this duration.
-   *   The lifespan is reset and calculated from the last `cache()` or `update()` call on the entry.
-   * - `0` (default) or negative: Timed lifespan protection is disabled.
-   *   Entries are held by `WeakRef`s and subject to standard JavaScript GC,
-   *   with no minimum lifetime enforced by the library.
+   * The capacity of the cache.
+   * If the number of cache values exceeds this value, the least recently used cache values will be removed.
    */
-  lifespan?: StringValue|number
+  capacity?: number
 }
 
 export abstract class CacheEntanglement<
@@ -70,9 +63,9 @@ export abstract class CacheEntanglement<
 > {
   protected readonly creation: G
   protected readonly beforeUpdateHook: BeforeUpdateHook<D, G>
-  protected readonly lifespan: number
+  protected readonly capacity: number
   protected readonly dependencies: D
-  protected readonly caches: InvertedWeakMap<string, CacheData<Awaited<ReturnType<G>>>>
+  protected readonly caches: LRUMap<string, CacheData<Awaited<ReturnType<G>>>>
   protected readonly parameters: Map<string, CacheGetterParams<G>>
   protected readonly assignments: CacheEntanglement<any, any>[]
   protected readonly dependencyProperties: (keyof D)[]
@@ -85,14 +78,14 @@ export abstract class CacheEntanglement<
     option = option ?? {}
     const {
       dependencies,
-      lifespan,
+      capacity,
       beforeUpdateHook,
     } = option
     this.creation = creation
-    this.beforeUpdateHook = (beforeUpdateHook ?? (() => {})) as BeforeUpdateHook<D, G>
-    this.lifespan = this._normalizeMs(lifespan ?? 0)
+    this.beforeUpdateHook = (beforeUpdateHook ?? (() => { })) as BeforeUpdateHook<D, G>
+    this.capacity = capacity ?? 100
     this.assignments = []
-    this.caches = new InvertedWeakMap({ lifespan: this.lifespan })
+    this.caches = new LRUMap(this.capacity)
     this.parameters = new Map()
     this.dependencies = (dependencies ?? {}) as D
     this.dependencyProperties = Object.keys(this.dependencies) as (keyof D)[]
@@ -106,14 +99,7 @@ export abstract class CacheEntanglement<
     }
   }
 
-  private _normalizeMs(time: StringValue|number): number {
-    if (typeof time === 'string') {
-      return ms(time)
-    }
-    return time
-  }
-  
-  protected abstract recache(key: string): Deferred<CacheData<Awaited<ReturnType<G>>>|undefined>
+  protected abstract recache(key: string): Deferred<CacheData<Awaited<ReturnType<G>>> | undefined>
 
   protected abstract resolve(
     key: string,

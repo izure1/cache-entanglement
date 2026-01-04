@@ -13,13 +13,9 @@ describe('unit', () => {
   const init = () => {
     const nickname = new CacheEntanglementAsync(async (key) => {
       return `user:${key}`
-    }, {
-      lifespan: '1m'
     })
-    const index = new CacheEntanglementAsync(async (key, {}, i: number) => {
+    const index = new CacheEntanglementAsync(async (key, { }, i: number) => {
       return i
-    }, {
-      lifespan: '1m'
     })
     const user = new CacheEntanglementAsync(async (key, { nickname, index }) => {
       return {
@@ -28,7 +24,6 @@ describe('unit', () => {
         index: index.raw,
       }
     }, {
-      lifespan: '1m',
       dependencies: {
         nickname,
         index,
@@ -96,8 +91,6 @@ describe('unit', () => {
   test('1:n update', async () => {
     const header = new CacheEntanglementAsync(async (key, state, value: string) => {
       return value
-    }, {
-      lifespan: '1m'
     })
     const body = new CacheEntanglementAsync(async (key, { header }, content: string) => {
       return {
@@ -105,7 +98,6 @@ describe('unit', () => {
         content
       }
     }, {
-      lifespan: '1m',
       dependencies: {
         header
       },
@@ -130,13 +122,13 @@ describe('unit', () => {
       header: 'lee header',
       content: 'john content 1'
     })
-    
+
     await body.update(`${prefix}/2`, 'john content 3')
     expect((await body.get(`${prefix}/2`)).raw).toEqual({
       header: 'lee header',
       content: 'john content 3'
     })
-    
+
     await header.update(`${prefix}`, 'lee header 2')
     expect((await body.get(`${prefix}/2`)).raw).toEqual({
       header: 'lee header 2',
@@ -155,10 +147,8 @@ describe('unit', () => {
 
     const company = new CacheEntanglementSync((key, state, companyName: string) => {
       return companyName
-    }, {
-      lifespan: '1m'
     })
-    
+
     const employee = new CacheEntanglementSync((key, { company }, name: string) => {
       const companyName = company.raw
       return {
@@ -166,7 +156,6 @@ describe('unit', () => {
         companyName,
       }
     }, {
-      lifespan: '1m',
       dependencies: {
         company
       },
@@ -178,7 +167,6 @@ describe('unit', () => {
         tel,
       }
     }, {
-      lifespan: '1m',
       dependencies: {
         employee
       },
@@ -193,7 +181,7 @@ describe('unit', () => {
       name: 'lee',
       companyName: 'Github'
     })
-    
+
     card.cache('github/john/card', 'xxx-xxxx-xxxx')
 
     expect(card.get('github/john/card').raw).toEqual({
@@ -218,8 +206,6 @@ describe('unit', () => {
   test('before update', () => {
     const header = new CacheEntanglementSync((key, state, value: string) => {
       return value
-    }, {
-      lifespan: '1m'
     })
 
     const body = new CacheEntanglementSync((key, { header }, headerContent: string, bodyContent: string) => {
@@ -228,7 +214,6 @@ describe('unit', () => {
         content: bodyContent
       }
     }, {
-      lifespan: '1m',
       dependencies: {
         header
       },

@@ -11,7 +11,7 @@ Efficiently manage interconnected caches with automatic dependency tracking and 
 * Automatic invalidation and updates
 * Sync and async cache creation functions
 * Key-based namespace resolution
-* Lifespan and garbage collection handling
+* Cache capacity and LRU (Least Recently Used) management
 
 ## 🚀 Quick Start
 
@@ -139,19 +139,37 @@ function addComment(id: string, comment: string) {
 }
 ```
 
-## 🕒 Lifespan & Garbage Collection
+## 🧠 Cache Capacity & LRU (Least Recently Used)
 
-Use the `lifespan` option to keep entries alive for a guaranteed duration:
+Instances manage cache values using a **Least Recently Used (LRU)** strategy. If the number of cached items exceeds the `capacity`, the oldest accessed entries are automatically removed.
 
 ```typescript
 const cache = new CacheEntanglementSync((key, state, value: string) => value, {
-  lifespan: '5m' // or 1000 * 60 * 5
+  capacity: 500 // Limit to 500 entries (Default: 100)
 })
 
 cache.cache('my-key', 'hello')
 ```
 
-The cache remains alive for 5 minutes after each access. If garbage collected after expiration, it'll regenerate on the next `.cache()` call.
+This approach ensures stable memory usage and prevents the "infinite growth" problem, providing a better runtime experience than time-based expiration.
+
+## 🚀 Migration Guide (lifespan → capacity)
+
+The `lifespan` option has been removed to improve reliability and prevent unexpected process hangs caused by `setTimeout`.
+
+### Before
+```typescript
+const cache = new CacheEntanglementSync(getter, { lifespan: '5m' })
+```
+
+### After
+Use the `capacity` option to limit memory usage based on the number of entries.
+```typescript
+const cache = new CacheEntanglementSync(getter, { capacity: 100 })
+```
+
+> [!IMPORTANT]
+> Since entries no longer "expire" based on time, they will remain in memory until the `capacity` is reached or they are manually deleted.
 
 ## 🪝 beforeUpdateHook
 
