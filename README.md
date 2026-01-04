@@ -194,6 +194,37 @@ user.cache('john', 'John', 20)
 
 ⚠️ Avoid using `.update()` within `beforeUpdateHook` to prevent recursion.
 
+## 🧩 Utility Classes
+
+The package also exports utility classes that are used internally but can be useful for general purposes.
+
+### `LRUMap`
+A Map-like data structure that implements the Least Recently Used (LRU) eviction policy. Once the capacity is reached, the least recently accessed item is removed.
+
+```typescript
+import { LRUMap } from 'cache-entanglement'
+
+const cache = new LRUMap<string, string>(100) // capacity: 100
+cache.set('key', 'value')
+console.log(cache.get('key')) // 'value'
+```
+
+### `InvertedWeakMap`
+A Map that holds weak references to its **values** rather than its keys. This is useful when you want to cache objects but allow them to be garbage collected if there are no other references to them.
+
+```typescript
+import { InvertedWeakMap } from 'cache-entanglement'
+
+const map = new InvertedWeakMap<string, object>()
+let obj: object | null = { data: 'hello' }
+
+map.set('obj1', obj)
+console.log(map.get('obj1')) // { data: 'hello' }
+
+obj = null // Now the object can be garbage collected
+// After GC, map.get('obj1') will return undefined
+```
+
 ## 🧩 TypeScript Usage
 
 ```typescript

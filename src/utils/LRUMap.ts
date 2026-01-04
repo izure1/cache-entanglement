@@ -1,3 +1,8 @@
+/**
+ * Represents a node in the LRU cache's doubly linked list.
+ * @template K Type of the key.
+ * @template V Type of the value.
+ */
 export interface CacheNode<K, V> {
   key: K
   value: V
@@ -5,24 +10,40 @@ export interface CacheNode<K, V> {
   next: CacheNode<K, V> | null
 }
 
+/**
+ * A Map-like data structure that implements the Least Recently Used (LRU) eviction policy.
+ * Once the capacity is reached, the least recently accessed item is removed.
+ * @template K Type of the key.
+ * @template V Type of the value.
+ */
 export class LRUMap<K, V> {
   private capacity: number
   private map: Map<K, CacheNode<K, V>>
   private head: CacheNode<K, V> | null = null
   private tail: CacheNode<K, V> | null = null
 
+  /**
+   * Creates an instance of LRUMap.
+   * @param capacity The maximum number of items the cache can hold.
+   */
   constructor(capacity: number) {
     this.capacity = capacity
     this.map = new Map<K, CacheNode<K, V>>()
   }
 
-  // 내부 유틸리티: 노드를 헤드로 이동 (가장 최근 사용됨 표시)
+  /**
+   * Promotes a node to the head of the linked list (marks as most recently used).
+   * @param node The node to promote.
+   */
   private promote(node: CacheNode<K, V>) {
     this.extract(node)
     this.prepend(node)
   }
 
-  // 내부 유틸리티: 리스트에서 노드 연결 끊기
+  /**
+   * Disconnects a node from the doubly linked list.
+   * @param node The node to extract.
+   */
   private extract(node: CacheNode<K, V>) {
     if (node.prev) node.prev.next = node.next
     else this.head = node.next
@@ -34,7 +55,10 @@ export class LRUMap<K, V> {
     node.next = null
   }
 
-  // 내부 유틸리티: 리스트 맨 앞에 노드 삽입
+  /**
+   * Inserts a node at the head of the doubly linked list.
+   * @param node The node to prepend.
+   */
   private prepend(node: CacheNode<K, V>) {
     node.next = this.head
     if (this.head) this.head.prev = node
@@ -43,25 +67,24 @@ export class LRUMap<K, V> {
   }
 
   /**
-   * 데이터를 저장하거나 업데이트합니다.
-   * 용량 초과 시 가장 오래된 항목(tail)을 제거합니다.
+   * Stores or updates a value by key.
+   * If the capacity is exceeded, the least recently used item (tail) is removed.
+   * @param key The key to store.
+   * @param value The value to store.
    */
   set(key: K, value: V): void {
     const existing = this.map.get(key)
 
     if (existing) {
-      // 기존 값이 있으면 업데이트하고 위치 갱신
       existing.value = value
       this.promote(existing)
       return
     }
 
-    // 새 노드 생성
     const newNode: CacheNode<K, V> = { key, value, prev: null, next: null }
     this.map.set(key, newNode)
     this.prepend(newNode)
 
-    // 용량 확인 및 제거
     if (this.map.size > this.capacity && this.tail) {
       this.map.delete(this.tail.key)
       this.extract(this.tail)
@@ -69,7 +92,10 @@ export class LRUMap<K, V> {
   }
 
   /**
-   * 데이터를 가져옵니다. 접근한 데이터는 "최근 사용됨"으로 갱신됩니다.
+   * Retrieves a value by key.
+   * Accessing the item moves it to the "most recently used" position.
+   * @param key The key to look for.
+   * @returns The value associated with the key, or undefined if not found.
    */
   get(key: K): V | undefined {
     const node = this.map.get(key)
@@ -80,14 +106,18 @@ export class LRUMap<K, V> {
   }
 
   /**
-   * 키의 존재 여부를 확인합니다. (순서는 변경하지 않는 것이 일반적입니다)
+   * Checks if a key exists in the cache without changing its access order.
+   * @param key The key to check.
+   * @returns True if the key exists, false otherwise.
    */
   has(key: K): boolean {
     return this.map.has(key)
   }
 
   /**
-   * 특정 키와 데이터를 캐시에서 완전히 제거합니다.
+   * Removes a key and its associated value from the cache.
+   * @param key The key to remove.
+   * @returns True if the key was found and removed, false otherwise.
    */
   delete(key: K): boolean {
     const node = this.map.get(key)
@@ -99,7 +129,8 @@ export class LRUMap<K, V> {
   }
 
   /**
-   * 현재 캐시된 키들을 최근 사용된 순서대로 반환합니다.
+   * Returns an iterator of keys in the order of most recently used to least recently used.
+   * @returns An iterable iterator of keys.
    */
   *keys(): IterableIterator<K> {
     let current = this.head
@@ -110,14 +141,14 @@ export class LRUMap<K, V> {
   }
 
   /**
-   * 현재 캐시된 아이템의 개수를 반환합니다.
+   * Returns the current number of items in the cache.
    */
   get size(): number {
     return this.map.size
   }
 
   /**
-   * 캐시를 완전히 비웁니다.
+   * Clears all items from the cache.
    */
   clear(): void {
     this.map.clear()
